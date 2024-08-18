@@ -8,7 +8,7 @@ import helper
 season_dict = {1: [12,1,2], 2: [3,4,5], 3: [6,7,8], 4: [9,10,11]} 
 seasons_id = {"Winter":1, "Frühling":2, "Sommer":3, "Herbst": 4}
 menu = ['Statisitik der Jahreszeiten', 'Vergleich Jahreszeit-Temperatur Mittelwerte']
-        
+DEF_NORM_START, DEF_NORM_END = 1991, 2020        
 
 def cumulative_average(df, sort_key, value_key):
     df_year = df.sort_values(by=sort_key)
@@ -87,7 +87,7 @@ def get_filters():
     
     compare_options=["Jahr", "Klimanormale"]
     compare_type = st.sidebar.radio("Vergleiche ausgewählte Jahreszeit mit", compare_options)
-    comparison_years, climate_normal, normal_start, normal_end = [st.session_state.years[1],st.session_state.years[2],st.session_state.years[3]], [], 1971, 2000
+    comparison_years, climate_normal, normal_start, normal_end = [st.session_state.years[1],st.session_state.years[2],st.session_state.years[3]], [], DEF_NORM_START, DEF_NORM_END
     if compare_options.index(compare_type) == 0:
         comparison_years = st.sidebar.multiselect("Vergleichsjahre", st.session_state.years, default=comparison_years)
     else:

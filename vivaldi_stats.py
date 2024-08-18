@@ -53,6 +53,7 @@ def show():
     styled_df = summary_table.style.apply(highlight_current_year_row, axis=1)
 
     st.title("Statistik der Temperaturen nach Jahreszeiten, Station Binningen")
+    st.subheader(f"Jahre {selected_year_range[0]} - {selected_year_range[1]}")
     st.dataframe(styled_df, height=800, width=1000, hide_index=True)
 
     csv = summary_table.to_csv(index=False)
@@ -62,3 +63,14 @@ def show():
         file_name='seasonal_temperature_summary.csv',
         mime='text/csv'
     )
+
+    st.title("Einzeldaten")
+    st.subheader(f"Jahre {selected_year_range[0]} - {selected_year_range[1]}")
+    df = st.session_state.data.sort_values(by='date', ascending=False)
+    filtered_df = df[
+        (df['season'].isin(selected_seasons)) &
+        (df['year'] >= selected_year_range[0]) &
+        (df['year'] <= selected_year_range[1])
+    ]
+    filtered_df = filtered_df[['date', 'year', 'temperature', 'min_temperature', 'max_temperature', 'day_in_season']]
+    st.dataframe(filtered_df, height=800, width=1000, hide_index=True)

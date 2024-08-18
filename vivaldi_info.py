@@ -17,5 +17,5 @@ def get_data(parquet_file_path):
 
 def show():
     st.title("Vivaldi - Die Jahreszeiten-App") 
-    st.write(txt['intro'])
+    st.markdown(txt['intro'])
     
