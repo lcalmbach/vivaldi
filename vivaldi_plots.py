@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
-from datetime import datetime
 import helper
 
 
@@ -10,20 +9,56 @@ seasons_id = {"Winter":1, "Frühling":2, "Sommer":3, "Herbst": 4}
 menu = ['Statisitik der Jahreszeiten', 'Vergleich Jahreszeit-Temperatur Mittelwerte']
 DEF_NORM_START, DEF_NORM_END = 1991, 2020        
 
-def cumulative_average(df, sort_key, value_key):
+def cumulative_average(df: pd.DataFrame, sort_key:str, value_key:str)->pd.DataFrame:
+    """
+    Calculate the cumulative average of a specified column in a DataFrame.
+
+    Args:
+        df (pandas.DataFrame): The input DataFrame.
+        sort_key (str): The column name used for sorting the DataFrame.
+        value_key (str): The column name for which the cumulative average is calculated.
+
+    Returns:
+        pandas.DataFrame: A DataFrame containing the sorted values of `sort_key` and the cumulative average of `value_key`.
+    """
     df_year = df.sort_values(by=sort_key)
     df_year[value_key] = df_year[value_key].expanding().mean()
     result = df_year[[sort_key, value_key]]
     return result
 
 
-def get_main_data(all_data, main_year, season):
-    main_year_data = all_data[(all_data['year'] == main_year) & (all_data['season'] == season)]
+def get_main_data(all_data:pd.DataFrame, main_year:int, season:int)->pd.DataFrame:
+    """
+    Retrieves the main data for a specific year and season from the given dataset.
+
+    Parameters:
+    - all_data (DataFrame): The dataset containing all the data.
+    - main_year (int): The main year to filter the data by.
+    - season (str): The season to filter the data by.
+
+    Returns:
+    - main_year_data (DataFrame): The filtered data for the main year and season.
+    """
+    main_year_data = all_data[(all_data['season_year'] == main_year) & (all_data['season'] == season)]
     main_year_data['year'] = f'{helper.season_name[season]} {main_year}'
     return main_year_data
 
 
-def get_comparison_data(all_data, compare_type, comparison_years, climate_normal, season):
+def get_comparison_data(all_data:pd.DataFrame, compare_type:str, comparison_years:list, climate_normal:list, season:int):
+    """
+    Retrieves comparison data based on the specified parameters.
+
+    Parameters:
+    - all_data: DataFrame containing all the data
+    - compare_type: Type of comparison ('Jahr' or other)
+    - comparison_years: List of years to compare
+    - climate_normal: Range of years for climate normal
+    - season: Season to consider
+
+    Returns:
+    - comparison_data: DataFrame containing the comparison data
+    """
+
     if compare_type == 'Jahr':
         comparison_data = all_data[(all_data['season'] == season) & (all_data['season_year'].isin(comparison_years)) ]
         comparison_data = comparison_data[['season_year', 'day_in_season', 'temperature']]
@@ -39,16 +74,22 @@ def get_comparison_data(all_data, compare_type, comparison_years, climate_normal
 
 
 def plot_line_chart(plot_data, main_year: int, settings: dict):
+    """
+    Plots a line chart using the provided data.
+
+    Parameters:
+    - plot_data (pandas.DataFrame): The data to be plotted.
+    - main_year (int): The main year to highlight in the chart.
+    - settings (dict): Additional settings for the chart.
+
+    Returns:
+    None
+    """
     plot_data['is_main_year'] = plot_data['year'].str.contains(str(main_year))
     line_chart = alt.Chart(plot_data).mark_line().encode(
         x='day_in_season:Q',
         y='temperature:Q',
         color='year:N',
-        #strokeDash=alt.condition(
-        #    alt.datum['is_main_year'],
-        #    alt.value([0]),
-        #    alt.value([5, 5])
-        #),
         size=alt.condition(
             alt.datum['is_main_year'],
             alt.value(3),
@@ -61,12 +102,22 @@ def plot_line_chart(plot_data, main_year: int, settings: dict):
     st.altair_chart(line_chart, use_container_width=True)
 
 
-def plot_histogram(plot_data, settings):
+def plot_histogram(plot_data:pd.DataFrame, settings:dict):
+    """
+    Plots a histogram using the provided plot_data and settings.
+
+    Parameters:
+    - plot_data (pandas.DataFrame): The data to be plotted.
+    - settings (dict): A dictionary containing the plot settings.
+
+    Returns:
+    None
+    """
     histogram = alt.Chart(plot_data).mark_bar().encode(
-    alt.X('temperature:Q', bin=True, title='Temperatur [°C]'),
-    alt.Y('count()', title='Count'),
-    alt.Color('season_year:N', legend=alt.Legend(title="Jahr")),
-    alt.Facet('season_year:N', columns=1, title=settings['title'])
+        alt.X('temperature:Q', bin=True, title='Temperatur [°C]'),
+        alt.Y('count()', title='Count'),
+        alt.Color('season_year:N', legend=alt.Legend(title="Jahr")),
+        alt.Facet('season_year:N', columns=1, title=settings['title'])
     ).properties(
         width=400,
         height=300
@@ -80,6 +131,17 @@ def plot_histogram(plot_data, settings):
 
 
 def get_filters():
+    """
+    Returns the selected filters for generating Vivaldi plots.
+
+    Returns:
+        tuple: A tuple containing the following elements:
+            - season (str): The selected season.
+            - main_year (int): The selected main year.
+            - compare_type (str): The type of comparison selected.
+            - comparison_years (list): The selected comparison years.
+            - climate_normal (list): The selected climate normal range.
+    """
     st.sidebar.header("Select Filters")
     
     season = seasons_id[st.sidebar.selectbox("Wähle eine Jahreszeit", seasons_id.keys(), st.session_state.current_season-1)]
@@ -96,6 +158,19 @@ def get_filters():
 
 
 def show():
+    """
+    Displays graphical representations of temperature data.
+
+    This function retrieves filters, main year data, and comparison data based on the selected season, main year,
+    comparison type, comparison years, and climate normal. It then plots line charts and histograms to visualize the
+    temperature data.
+
+    Parameters:
+        None
+
+    Returns:
+        None
+    """
     st.title("Grafische Darstellungen")
 
     season, main_year, compare_type, comparison_years, climate_normal = get_filters()

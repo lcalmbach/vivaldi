@@ -8,11 +8,39 @@ pd.set_option("styler.render.max_elements", 469312)
 
 
 def highlight_current_year_row(row):
+    """
+    Highlights the current year row in a DataFrame.
+
+    Parameters:
+    - row: A pandas Series representing a row in a DataFrame.
+
+    Returns:
+    - A list of CSS styles to apply to each cell in the row. If the row represents the current year, the style will be 'background-color: yellow', otherwise an empty string.
+
+    Example:
+    >>> df = pd.DataFrame({'Jahr': [2020, 2021, 2022]})
+    >>> df.apply(highlight_current_year_row, axis=1)
+    """
     if row['Jahr'] == current_year:
         return ['background-color: yellow'] * len(row)
     return [''] * len(row)
 
 def show():
+    """
+    Displays statistics and individual data for seasonal temperatures.
+
+    This function generates a summary table and individual data table for seasonal temperatures.
+    It allows the user to select the seasons, year range, and ranking parameter for the summary table.
+    The summary table is displayed with highlighted rows for the current year.
+    The individual data table is displayed with columns for date, year, temperature, min_temperature,
+    max_temperature, and day_in_season.
+
+    Parameters:
+        None
+
+    Returns:
+        None
+    """
     df = st.session_state.data
     season_mapping = {1: 'Winter', 2: 'Frühling', 3: 'Sommer', 4: 'Herbst'}
     ranking_options = ['Mittl. Temp', 'Min Temp', 'Max Temp']
@@ -31,12 +59,12 @@ def show():
 
     filtered_df = df[
         (df['season'].isin(selected_seasons)) &
-        (df['year'] >= selected_year_range[0]) &
-        (df['year'] <= selected_year_range[1])
+        (df['season_year'] >= selected_year_range[0]) &
+        (df['season_year'] <= selected_year_range[1])
     ]
 
     # Generate the summary table grouped by year and season
-    summary_table = filtered_df.groupby(['year', 'season']).agg({
+    summary_table = filtered_df.groupby(['season_year', 'season']).agg({
         'temperature': ['mean'],
         'min_temperature': ['min'],
         'max_temperature': ['max']
@@ -48,8 +76,6 @@ def show():
     summary_table.columns = ['Jahr', 'Jahreszeit', 'Mittl. Temp', 'Min Temp', 'Max Temp']
     summary_table['Rang'] = summary_table[ranked_parameter].rank(ascending=False, method='min')
 
-
-    # Apply the style to the 'year' column
     styled_df = summary_table.style.apply(highlight_current_year_row, axis=1)
 
     st.title("Statistik der Temperaturen nach Jahreszeiten, Station Binningen")

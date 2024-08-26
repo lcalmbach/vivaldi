@@ -11,10 +11,10 @@ parquet_file_path = "data/100254.parquet"
 # https://icons.getbootstrap.com/?q=image
 menu_icons = ["house", "table", "graph-up"]
 
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 __author__ = "Lukas Calmbach"
 __author_email__ = "lcalmbach@gmail.com"
-VERSION_DATE = "2024-25-18"
+VERSION_DATE = "2024-08-26"
 APP_NAME = "Vivaldi"
 GIT_REPO = "https://github.com/lcalmbach/vivaldi"
 SOURCE_URL = "https://data.bs.ch/explore/dataset/100254/"
@@ -27,6 +27,20 @@ menu_options = [
 
 @st.cache_data
 def get_data(parquet_file_path):
+    """
+    Retrieves data from a parquet file and updates it with new records from an API.
+    The function verifies if the last date in the DataFrame is more than 1 day before the current date. If so, it 
+    fetches new data from the API and appends it to the DataFrame.
+
+    Args:
+        parquet_file_path (str): The file path of the parquet file.
+
+    Returns:
+        pandas.DataFrame: The updated DataFrame containing the data from the parquet file.
+
+    Raises:
+        None
+    """
     parquet_df = pd.read_parquet(parquet_file_path)
     last_date = parquet_df['date'].max().date()
     two_days_ago = datetime.now().date() - timedelta(days=2)
