@@ -11,10 +11,10 @@ parquet_file_path = "data/100254.parquet"
 # https://icons.getbootstrap.com/?q=image
 menu_icons = ["house", "table", "graph-up"]
 
-__version__ = "0.0.4"
+__version__ = "0.0.5"
 __author__ = "Lukas Calmbach"
 __author_email__ = "lcalmbach@gmail.com"
-VERSION_DATE = "2024-08-26"
+VERSION_DATE = "2024-08-30"
 APP_NAME = "Vivaldi"
 GIT_REPO = "https://github.com/lcalmbach/vivaldi"
 SOURCE_URL = "https://data.bs.ch/explore/dataset/100254/"
@@ -25,7 +25,6 @@ menu_options = [
     "Grafiken"
 ]
 
-@st.cache_data
 def get_data(parquet_file_path):
     """
     Retrieves data from a parquet file and updates it with new records from an API.
