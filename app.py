@@ -5,16 +5,17 @@ import pandas as pd
 from datetime import datetime, timedelta
 import vivaldi_info, vivaldi_stats, vivaldi_plots
 import requests
+import numpy as np
 import helper
 
 parquet_file_path = "data/100254.parquet"
 # https://icons.getbootstrap.com/?q=image
 menu_icons = ["house", "table", "graph-up"]
 
-__version__ = "0.0.5"
+__version__ = "0.0.6"
 __author__ = "Lukas Calmbach"
 __author_email__ = "lcalmbach@gmail.com"
-VERSION_DATE = "2024-08-30"
+VERSION_DATE = "2024-08-31"
 APP_NAME = "Vivaldi"
 GIT_REPO = "https://github.com/lcalmbach/vivaldi"
 SOURCE_URL = "https://data.bs.ch/explore/dataset/100254/"
@@ -71,6 +72,9 @@ def get_data(parquet_file_path):
                 parquet_df = helper.add_meteorological_season(parquet_df, 'date')
                 parquet_df['day_in_season'] = parquet_df.groupby(['season', 'season_year']).cumcount() + 1
                 parquet_df.to_parquet(parquet_file_path)
+    parquet_df['hitzetag'] = np.where(parquet_df['max_temperature'] > 30, 1, 0)
+    parquet_df['eistag'] = np.where(parquet_df['max_temperature'] < 0, 1, 0)
+    parquet_df['frosttag'] = np.where(parquet_df['min_temperature'] < 0, 1, 0)
     return parquet_df
 
 APP_INFO = f"""<div style="background-color:#34282C; padding: 10px;border-radius: 15px; border:solid 1px white;">
@@ -93,10 +97,11 @@ def init():
 def main():
     init()
     if 'data' not in st.session_state:
-        st.session_state.data = get_data(parquet_file_path) 
-        st.session_state.years = sorted(st.session_state.data['year'].unique(), reverse=True)
-        st.session_state.min_year, st.session_state.max_year = min(st.session_state.years), max(st.session_state.years)
-        st.session_state.current_season = get_season(datetime.now())
+        with st.spinner("Daten werden geladen..."):
+            st.session_state.data = get_data(parquet_file_path) 
+            st.session_state.years = sorted(st.session_state.data['year'].unique(), reverse=True)
+            st.session_state.min_year, st.session_state.max_year = min(st.session_state.years), max(st.session_state.years)
+            st.session_state.current_season = get_season(datetime.now())
     with st.sidebar:
         st.sidebar.title("Vivaldi 🎻")
         menu_action = option_menu(

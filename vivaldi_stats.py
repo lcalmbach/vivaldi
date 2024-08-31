@@ -1,9 +1,10 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import helper
 
 current_year = datetime.now().year
-pd.set_option("styler.render.max_elements", 469312)
+pd.set_option("styler.render.max_elements", 660000)
 
 
 
@@ -43,12 +44,13 @@ def show():
     """
     df = st.session_state.data
     season_mapping = {1: 'Winter', 2: 'Frühling', 3: 'Sommer', 4: 'Herbst'}
-    ranking_options = ['Mittl. Temp', 'Min Temp', 'Max Temp']
+    ranking_options = ['Mittl. Temp', 'Min Temp', 'Max Temp', 'Hitzetage', 'Eistage', 'Frosttage']
 
     # Add a season filter to the sidebar
     selected_seasons = st.sidebar.multiselect( 
         "Selektiere Jahreszeit", options=list(season_mapping.keys()),
-        format_func=lambda x: season_mapping[x]
+        format_func=lambda x: season_mapping[x],
+        default=helper.get_current_season()
     )
     if selected_seasons == []:
         selected_seasons = df['season'].unique()
@@ -67,20 +69,31 @@ def show():
     summary_table = filtered_df.groupby(['season_year', 'season']).agg({
         'temperature': ['mean'],
         'min_temperature': ['min'],
-        'max_temperature': ['max']
+        'max_temperature': ['max'],
+        'hitzetag': ['sum'],
+        'frosttag': ['sum'],
+        'eistag': ['sum']
     }).reset_index()
 
     ranked_parameter = st.sidebar.selectbox("Ranking Parameter", ranking_options)
     # Rename columns for better readability
     summary_table['season'] = summary_table['season'].map(season_mapping)
-    summary_table.columns = ['Jahr', 'Jahreszeit', 'Mittl. Temp', 'Min Temp', 'Max Temp']
+    summary_table.columns = ['Jahr', 'Jahreszeit', 'Mittl. Temp', 'Min Temp', 'Max Temp', 'Hitzetage', 'Frosttage', 'Eistage']
     summary_table['Rang'] = summary_table[ranked_parameter].rank(ascending=False, method='min')
+    summary_table['Rang'] = summary_table['Rang'].astype(int)
 
-    styled_df = summary_table.style.apply(highlight_current_year_row, axis=1)
+    summary_table.style.apply(highlight_current_year_row, axis=1)
+    summary_table.style.format({
+        "max_temperature": "{:.1f}".format,
+        "min_temperature": "{:.1f}".format,
+        "temperature": "{:.1f}".format
+    })
 
+    summary_table.sort_values(by='Jahr', inplace=True, ascending=False)
     st.title("Statistik der Temperaturen nach Jahreszeiten, Station Binningen")
     st.subheader(f"Jahre {selected_year_range[0]} - {selected_year_range[1]}")
-    st.dataframe(styled_df, height=800, width=1000, hide_index=True)
+    st.dataframe(summary_table, height=800, width=1000, hide_index=True)
+    
 
     csv = summary_table.to_csv(index=False)
     st.download_button(
