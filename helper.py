@@ -1,5 +1,5 @@
 import pandas as pd
-from datetime import datetime, date
+from datetime import datetime, timedelta
 import socket
 import os
 import streamlit as st
@@ -15,8 +15,9 @@ def get_current_season():
         str: The current season.
 
     """
-    dt = datetime.now()
-    return get_season(dt)
+    today = datetime.now()
+    seven_days_ago = today - timedelta(days=7)
+    return get_season(seven_days_ago)
 
 def get_season(date: datetime)->int:
     """

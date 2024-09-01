@@ -12,10 +12,10 @@ parquet_file_path = "data/100254.parquet"
 # https://icons.getbootstrap.com/?q=image
 menu_icons = ["house", "table", "graph-up","thermometer-high", "chat-dots"]
 
-__version__ = "0.0.6"
+__version__ = "0.0.7"
 __author__ = "Lukas Calmbach"
 __author_email__ = "lcalmbach@gmail.com"
-VERSION_DATE = "2024-08-31"
+VERSION_DATE = "2024-09-01"
 APP_NAME = "Vivaldi"
 GIT_REPO = "https://github.com/lcalmbach/vivaldi"
 SOURCE_URL = "https://data.bs.ch/explore/dataset/100254/"
