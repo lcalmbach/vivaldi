@@ -78,21 +78,24 @@ def show():
     ranked_parameter = st.sidebar.selectbox("Ranking Parameter", ranking_options)
     # Rename columns for better readability
     summary_table['season'] = summary_table['season'].map(season_mapping)
-    summary_table.columns = ['Jahr', 'Jahreszeit', 'Mittl. Temp', 'Min Temp', 'Max Temp', 'Hitzetage', 'Frosttage', 'Eistage']
+    summary_table.columns = ['Jahr', 'Jahreszeit', 'Mittl. Temp', 'Min. Temp', 'Max. Temp', 'Hitzetage', 'Frosttage', 'Eistage']
     summary_table['Rang'] = summary_table[ranked_parameter].rank(ascending=False, method='min')
     summary_table['Rang'] = summary_table['Rang'].astype(int)
-
-    summary_table.style.apply(highlight_current_year_row, axis=1)
-    summary_table.style.format({
-        "max_temperature": "{:.1f}".format,
-        "min_temperature": "{:.1f}".format,
-        "temperature": "{:.1f}".format
+    summary_table.sort_values(by='Jahr', inplace=True, ascending=False)
+    styled_table = summary_table.style.apply(highlight_current_year_row, axis=1).format({
+        "Mittl. Temp": "{:.1f}",
+        "Min. Temp": "{:.1f}",
+        "Max. Temp": "{:.1f}"
     })
 
-    summary_table.sort_values(by='Jahr', inplace=True, ascending=False)
     st.title("Statistik der Temperaturen nach Jahreszeiten, Station Binningen")
     st.subheader(f"Jahre {selected_year_range[0]} - {selected_year_range[1]}")
-    st.dataframe(summary_table, height=800, width=1000, hide_index=True)
+    st.dataframe(
+        styled_table, 
+        height=800, 
+        width=1000, 
+        hide_index=True,
+    )
     
 
     csv = summary_table.to_csv(index=False)
@@ -111,5 +114,12 @@ def show():
         (df['year'] >= selected_year_range[0]) &
         (df['year'] <= selected_year_range[1])
     ]
-    filtered_df = filtered_df[['date', 'year', 'temperature', 'min_temperature', 'max_temperature', 'day_in_season']]
-    st.dataframe(filtered_df, height=800, width=1000, hide_index=True)
+    filtered_df = filtered_df[['date', 'temperature', 'min_temperature', 'max_temperature', 'day_in_season']]
+    filtered_df.columns = ['Datum', 'Mittl. Temp', 'Min. Temp', 'Max. Temp', 'Tag in Jahreszeit']
+    styled_df = filtered_df.style.format({
+        'Datum': lambda x: x.strftime('%d.%m.%Y'),
+        "Mittl. Temp": "{:.1f}",
+        "Min. Temp": "{:.1f}",
+        "Max. Temp": "{:.1f}"
+    })
+    st.dataframe(styled_df, height=800, width=1000, hide_index=True)

@@ -3,14 +3,14 @@ from streamlit_option_menu import option_menu
 from helper import get_season
 import pandas as pd
 from datetime import datetime, timedelta
-import vivaldi_info, vivaldi_stats, vivaldi_plots
+import vivaldi_info, vivaldi_stats, vivaldi_plots, vivaldi_heatmap, vivaldi_chat
 import requests
 import numpy as np
 import helper
 
 parquet_file_path = "data/100254.parquet"
 # https://icons.getbootstrap.com/?q=image
-menu_icons = ["house", "table", "graph-up"]
+menu_icons = ["house", "table", "graph-up","thermometer-high", "chat-dots"]
 
 __version__ = "0.0.6"
 __author__ = "Lukas Calmbach"
@@ -23,7 +23,9 @@ SOURCE_URL = "https://data.bs.ch/explore/dataset/100254/"
 menu_options = [
     "Über die App",
     "Tabellen",
-    "Grafiken"
+    "Zeitreihen",
+    "Heatmap",
+    "Meteo-Chat"
 ]
 
 def get_data(parquet_file_path):
@@ -118,6 +120,10 @@ def main():
         vivaldi_stats.show()
     if index == 2:
         vivaldi_plots.show()
+    if index == 3:
+        vivaldi_heatmap.show()
+    if index == 4:
+        vivaldi_chat.show()
 
     st.sidebar.markdown(APP_INFO, unsafe_allow_html=True)
 
