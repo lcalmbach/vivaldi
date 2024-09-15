@@ -41,17 +41,6 @@ def get_season(date: datetime)->int:
         return 4
 
 def add_meteorological_season(df: pd.DataFrame, date_column: str)->pd.DataFrame:
-    def get_season(date):
-        month = date.month
-        if month in [12, 1, 2]:
-            return 1
-        elif month in [3, 4, 5]:
-            return 2
-        elif month in [6, 7, 8]:
-            return 3
-        elif month in [9, 10, 11]:
-            return 4
-    
     # Ensure the date column is in datetime format
     df[date_column] = pd.to_datetime(df[date_column])
     

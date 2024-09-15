@@ -12,7 +12,7 @@ parquet_file_path = "data/100254.parquet"
 # https://icons.getbootstrap.com/?q=image
 menu_icons = ["house", "table", "graph-up","thermometer-high", "chat-dots"]
 
-__version__ = "0.0.7"
+__version__ = "0.0.8"
 __author__ = "Lukas Calmbach"
 __author_email__ = "lcalmbach@gmail.com"
 VERSION_DATE = "2024-09-01"
@@ -70,7 +70,7 @@ def get_data(parquet_file_path):
                 
                 parquet_df = pd.concat([parquet_df, new_df])
                 parquet_df = parquet_df.sort_values(by='date')
-                parquet_df['season_year'] = parquet_df['date'].apply(lambda x: x.year + 1 if x.month == 12 else x.year)
+                parquet_df['season_year'] = parquet_df['date'].apply(lambda x: x.year - 1 if x.month == 12 else x.year)
                 parquet_df = helper.add_meteorological_season(parquet_df, 'date')
                 parquet_df['day_in_season'] = parquet_df.groupby(['season', 'season_year']).cumcount() + 1
                 parquet_df.to_parquet(parquet_file_path)

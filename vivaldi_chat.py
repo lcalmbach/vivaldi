@@ -2,10 +2,10 @@ from openai import OpenAI
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from helper import get_var, get_current_season
+from helper import get_var, get_current_season, season_name
 from texte import txt
 
-season_mapping = {1: 'Winter', 2: 'Frühling', 3: 'Sommer', 4: 'Herbst'}
+
 ranking_options = ['Mittl. Temp', 'Min Temp', 'Max Temp', 'Hitzetage', 'Eistage', 'Frosttage']
 
 
@@ -31,17 +31,17 @@ def get_completion(user_prompt, df):
 def show():
     df = st.session_state.data
     
-    season_list = list(season_mapping.keys())
+    season_list = list(season_name.keys())
     index = season_list.index(get_current_season())
     selected_season = st.sidebar.selectbox( 
-        "Wähle eine Jahreszeit", options=list(season_mapping.keys()),
-        format_func=lambda x: season_mapping[x],
+        "Wähle eine Jahreszeit", options=list(season_name.keys()),
+        format_func=lambda x: season_name[x],
         index = index
     )
     jahre_options = sorted(df['season_year'].unique(), reverse=True)
     selected_year = st.sidebar.selectbox('Wähle das Jahr aus:', options = jahre_options, index = 0)
-    st.markdown(f'**Zusammenfasssung des {season_mapping[selected_season]}s für das Jahr {selected_year}** (Generiert mit ChatGPT-4o)')
-    if st.sidebar.button('KI-Zusammenfassung'):
+    st.markdown(f'**Zusammenfasssung des {season_name[selected_season]}s für das Jahr {selected_year}** (Generiert mit ChatGPT-4o)')
+    if st.button('KI-Zusammenfassung'):
         with st.spinner('🤖 Generiert Zusammenfassung...'):
             df = df[df['season'] == selected_season]
             summary_table = df.groupby(['season_year', 'season']).agg({
@@ -55,7 +55,7 @@ def show():
             summary_table['rank_mean_temperature'] = summary_table['temperature'].rank(ascending=False, method='max')
             summary_table['rank_max_temperature'] = summary_table['max_temperature'].rank(ascending=False, method='max')
             summary_table['rank_min_temperature'] = summary_table['min_temperature'].rank(ascending=False, method='max')
-            user_prompt = txt['user_prompt'].format(selected_season, selected_year)
+            user_prompt = txt['user_prompt'].format(season_name[selected_season], selected_year)
             
             response = get_completion(user_prompt, summary_table)
             st.write(response)
