@@ -3,19 +3,19 @@ from streamlit_option_menu import option_menu
 from helper import get_season
 import pandas as pd
 from datetime import datetime, timedelta
-import vivaldi_info, vivaldi_stats, vivaldi_plots, vivaldi_heatmap, vivaldi_chat
+import vivaldi_info, vivaldi_stats, vivaldi_plots, vivaldi_chat
 import requests
 import numpy as np
 import helper
 
 parquet_file_path = "data/100254.parquet"
 # https://icons.getbootstrap.com/?q=image
-menu_icons = ["house", "table", "graph-up","thermometer-high", "chat-dots"]
+menu_icons = ["house", "table", "graph-up","chat-dots"]
 
-__version__ = "0.0.8"
+__version__ = "0.0.9"
 __author__ = "Lukas Calmbach"
 __author_email__ = "lcalmbach@gmail.com"
-VERSION_DATE = "2024-09-01"
+VERSION_DATE = "2024-09-24"
 APP_NAME = "Vivaldi"
 GIT_REPO = "https://github.com/lcalmbach/vivaldi"
 SOURCE_URL = "https://data.bs.ch/explore/dataset/100254/"
@@ -24,7 +24,6 @@ menu_options = [
     "Über die App",
     "Tabellen",
     "Zeitreihen",
-    "Heatmap",
     "Meteo-Chat"
 ]
 
@@ -75,8 +74,8 @@ def get_data(parquet_file_path):
                 parquet_df['day_in_season'] = parquet_df.groupby(['season', 'season_year']).cumcount() + 1
                 parquet_df.to_parquet(parquet_file_path)
     parquet_df['hitzetag'] = np.where(parquet_df['max_temperature'] > 30, 1, 0)
-    parquet_df['eistag'] = np.where(parquet_df['max_temperature'] < 0, 1, 0)
     parquet_df['frosttag'] = np.where(parquet_df['min_temperature'] < 0, 1, 0)
+    parquet_df['eistag'] = np.where(parquet_df['max_temperature'] < 0, 1, 0)
     return parquet_df
 
 APP_INFO = f"""<div style="background-color:#34282C; padding: 10px;border-radius: 15px; border:solid 1px white;">
@@ -121,8 +120,6 @@ def main():
     if index == 2:
         vivaldi_plots.show()
     if index == 3:
-        vivaldi_heatmap.show()
-    if index == 4:
         vivaldi_chat.show()
 
     st.sidebar.markdown(APP_INFO, unsafe_allow_html=True)

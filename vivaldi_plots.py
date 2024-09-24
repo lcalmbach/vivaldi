@@ -144,7 +144,8 @@ def get_filters():
     """
     st.sidebar.header("Select Filters")
     
-    season = seasons_id[st.sidebar.selectbox("Wähle eine Jahreszeit", seasons_id.keys(), st.session_state.current_season-1)]
+    index = helper.get_current_season() -1
+    season = seasons_id[st.sidebar.selectbox("Wähle eine Jahreszeit", seasons_id.keys(), index=index)]
     main_year = st.sidebar.selectbox("Wähle das Hauptjahr", st.session_state.years )
     
     compare_options=["Jahr", "Klimanormale"]

@@ -44,7 +44,15 @@ def show():
     """
     df = st.session_state.data
     season_mapping = {1: 'Winter', 2: 'Frühling', 3: 'Sommer', 4: 'Herbst'}
-    ranking_options = ['Mittl. Temp', 'Min Temp', 'Max Temp', 'Hitzetage', 'Eistage', 'Frosttage']
+    ranking_options = ['Mittl. Temp', 'Min. Temp', 'Max. Temp', 'Hitzetage', 'Frosttage', 'Eistage']
+    column_names_dict = {
+        'Mittl. Temp': 'temperature', 
+        'Min. Temp': 'min_temperature', 
+        'Max. Temp': 'max_temperature', 
+        'Hitzetage': 'hitzetag', 
+        'Eistage': 'eistag', 
+        'Frosttage': 'frosttag'
+    }
 
     # Add a season filter to the sidebar
     selected_seasons = st.sidebar.multiselect( 
@@ -59,10 +67,12 @@ def show():
         "Select Year Range", min_year, max_year, (min_year, max_year)
     )
 
+    ranked_parameter = st.sidebar.selectbox("Ranking Parameter", ranking_options)
     filtered_df = df[
         (df['season'].isin(selected_seasons)) &
         (df['season_year'] >= selected_year_range[0]) &
-        (df['season_year'] <= selected_year_range[1])
+        (df['season_year'] <= selected_year_range[1]) &
+        (df[column_names_dict[ranked_parameter]].notna())
     ]
 
     # Generate the summary table grouped by year and season
@@ -75,10 +85,10 @@ def show():
         'eistag': ['sum']
     }).reset_index()
 
-    ranked_parameter = st.sidebar.selectbox("Ranking Parameter", ranking_options)
+    
     # Rename columns for better readability
     summary_table['season'] = summary_table['season'].map(season_mapping)
-    summary_table.columns = ['Jahr', 'Jahreszeit', 'Mittl. Temp', 'Min. Temp', 'Max. Temp', 'Hitzetage', 'Frosttage', 'Eistage']
+    summary_table.columns = ['Jahr', 'Jahreszeit'] + ranking_options
     summary_table['Rang'] = summary_table[ranked_parameter].rank(ascending=False, method='min')
     summary_table['Rang'] = summary_table['Rang'].astype(int)
     summary_table.sort_values(by='Jahr', inplace=True, ascending=False)

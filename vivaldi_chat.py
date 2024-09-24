@@ -34,7 +34,8 @@ def show():
     season_list = list(season_name.keys())
     index = season_list.index(get_current_season())
     selected_season = st.sidebar.selectbox( 
-        "Wähle eine Jahreszeit", options=list(season_name.keys()),
+        "Wähle eine Jahreszeit", 
+        options=list(season_name.keys()),
         format_func=lambda x: season_name[x],
         index = index
     )
@@ -56,6 +57,5 @@ def show():
             summary_table['rank_max_temperature'] = summary_table['max_temperature'].rank(ascending=False, method='max')
             summary_table['rank_min_temperature'] = summary_table['min_temperature'].rank(ascending=False, method='max')
             user_prompt = txt['user_prompt'].format(season_name[selected_season], selected_year)
-            
             response = get_completion(user_prompt, summary_table)
             st.write(response)

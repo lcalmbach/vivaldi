@@ -3,6 +3,13 @@ from datetime import datetime, timedelta
 import socket
 import os
 import streamlit as st
+from enum import Enum
+
+class Season(Enum):
+    WINTER = 1
+    SPRING = 2
+    SUMMER = 3
+    AUTUMN = 4
 
 season_name = {1:'Winter', 2:'Frühling', 3:'Sommer', 4:'Herbst'}
 LOCAL_HOST = 'gladiator'
@@ -16,8 +23,12 @@ def get_current_season():
 
     """
     today = datetime.now()
-    seven_days_ago = today - timedelta(days=7)
-    return get_season(seven_days_ago)
+    season = get_season(today)
+    if season > Season.WINTER.value:
+        return season -1
+    else:
+        return Season.AUTUMN.value
+    return 
 
 def get_season(date: datetime)->int:
     """
@@ -32,13 +43,13 @@ def get_season(date: datetime)->int:
     """
     month = date.month
     if month in [12, 1, 2]:
-        return 1
+        return Season.WINTER.value
     elif month in [3, 4, 5]:
-        return 2
+        return Season.SPRING.value
     elif month in [6, 7, 8]:
-        return 3
+        return Season.SUMMER.value
     elif month in [9, 10, 11]:
-        return 4
+        return Season.AUTUMN.value
 
 def add_meteorological_season(df: pd.DataFrame, date_column: str)->pd.DataFrame:
     # Ensure the date column is in datetime format
