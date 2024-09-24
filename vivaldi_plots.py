@@ -1,11 +1,8 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
-import helper
+from helper import season_id, season_name, get_current_season
 
-
-season_dict = {1: [12,1,2], 2: [3,4,5], 3: [6,7,8], 4: [9,10,11]} 
-seasons_id = {"Winter":1, "Frühling":2, "Sommer":3, "Herbst": 4}
 menu = ['Statisitik der Jahreszeiten', 'Vergleich Jahreszeit-Temperatur Mittelwerte']
 DEF_NORM_START, DEF_NORM_END = 1991, 2020        
 
@@ -36,11 +33,11 @@ def get_main_data(all_data:pd.DataFrame, main_year:int, season:int)->pd.DataFram
     - main_year (int): The main year to filter the data by.
     - season (str): The season to filter the data by.
 
-    Returns:
+    Returns:helper
     - main_year_data (DataFrame): The filtered data for the main year and season.
     """
     main_year_data = all_data[(all_data['season_year'] == main_year) & (all_data['season'] == season)]
-    main_year_data['year'] = f'{helper.season_name[season]} {main_year}'
+    main_year_data.loc[:, 'year'] = f'{season_name[season]} {main_year}'
     return main_year_data
 
 
@@ -63,11 +60,11 @@ def get_comparison_data(all_data:pd.DataFrame, compare_type:str, comparison_year
         comparison_data = all_data[(all_data['season'] == season) & (all_data['season_year'].isin(comparison_years)) ]
         comparison_data = comparison_data[['season_year', 'day_in_season', 'temperature']]
         comparison_data['year'] = comparison_data['season_year'].astype(str)
-        comparison_data['year'] = helper.season_name[season] + ' ' + comparison_data['year']
+        comparison_data['year'] = season_name[season] + ' ' + comparison_data['year']
     else:
         normal_data = all_data[(all_data['season_year'] >= climate_normal[0]) & (all_data['season_year'] <= climate_normal[1]) & ( all_data['season'] == season)]
         normal_data = normal_data.groupby('day_in_season').agg({'temperature':'mean'}).reset_index()
-        normal_data['year'] = f'{helper.season_name[season]} {climate_normal[1]} - {climate_normal[0]}'
+        normal_data['year'] = f'{season_name[season]} {climate_normal[1]} - {climate_normal[0]}'
         comparison_data = normal_data
     
     return comparison_data.sort_values(by='day_in_season')
@@ -119,6 +116,7 @@ def plot_histogram(plot_data:pd.DataFrame, settings:dict):
         alt.Color('season_year:N', legend=alt.Legend(title="Jahr")),
         alt.Facet('season_year:N', columns=1, title=settings['title'])
     ).properties(
+
         width=400,
         height=300
     ).configure_facet(
@@ -144,8 +142,14 @@ def get_filters():
     """
     st.sidebar.header("Select Filters")
     
-    index = helper.get_current_season() -1
-    season = seasons_id[st.sidebar.selectbox("Wähle eine Jahreszeit", seasons_id.keys(), index=index)]
+    index = get_current_season() -1
+    st.write(index)
+    selected_season = st.sidebar.selectbox( 
+        "Wähle eine Jahreszeit", 
+        options=list(season_name.keys()),
+        format_func=lambda x: season_name[x],
+        index = get_current_season() - 1
+    )
     main_year = st.sidebar.selectbox("Wähle das Hauptjahr", st.session_state.years )
     
     compare_options=["Jahr", "Klimanormale"]
@@ -155,7 +159,7 @@ def get_filters():
         comparison_years = st.sidebar.multiselect("Vergleichsjahre", st.session_state.years, default=comparison_years)
     else:
         climate_normal = st.sidebar.select_slider("Klimanormale", sorted(st.session_state.years), value=[normal_start,normal_end])
-    return season, main_year, compare_type, comparison_years, climate_normal
+    return selected_season, main_year, compare_type, comparison_years, climate_normal
 
 
 def show():
@@ -178,7 +182,7 @@ def show():
     main_year_data = get_main_data(st.session_state.data , main_year, season)
     comparison_data = get_comparison_data(st.session_state.data, compare_type, comparison_years, climate_normal, season)
     plot_data = pd.concat([main_year_data, comparison_data])
-    settings = {'title': f'Verlauf der mittleren Tagestemperatur im {helper.season_name[season]}'}
+    settings = {'title': f'Verlauf der mittleren Tagestemperatur im {season_name[season]}'}
     plot_line_chart(plot_data, main_year, settings)
     st.write('---')
 
@@ -195,7 +199,7 @@ def show():
         cumulative_comparison_data['year'] = f'{climate_normal[1]} - {climate_normal[0]}'
 
     plot_data = pd.concat([cumulative_main_year_data, cumulative_comparison_data])
-    settings = {'title': f'Verlauf des kumulativen Tagestemperatur-Mittelwerts im {helper.season_name[season]}'}
+    settings = {'title': f'Verlauf des kumulativen Tagestemperatur-Mittelwerts im {season_name[season]}'}
     plot_line_chart(plot_data, main_year, settings)
     st.write('---')
 

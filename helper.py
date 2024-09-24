@@ -11,7 +11,10 @@ class Season(Enum):
     SUMMER = 3
     AUTUMN = 4
 
-season_name = {1:'Winter', 2:'Frühling', 3:'Sommer', 4:'Herbst'}
+season_id = {"Winter":1, "Frühling":2, "Sommer":3, "Herbst": 4}
+season_name = {1: 'Winter', 2:'Frühling', 3:'Sommer', 4:'Herbst'}
+season_dict = {1: [12,1,2], 2: [3,4,5], 3: [6,7,8], 4: [9,10,11]} 
+
 LOCAL_HOST = 'gladiator'
 
 def get_current_season():
