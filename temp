@@ -1,0 +1,36 @@
+cumulative_main_year_data = cumulative_average(
+        main_year_data, "day_in_season", "temperature"
+    )
+    cumulative_main_year_data["year"] = str(main_year)
+    if compare_type == "Jahr":
+        cumulative_comparison_data = pd.DataFrame()
+        for year in comparison_years:
+            df = cumulative_average(
+                comparison_data[comparison_data["season_year"] == year],
+                "day_in_season",
+                "temperature",
+            )
+            df["year"] = str(year)
+            cumulative_comparison_data = pd.concat([cumulative_comparison_data, df])
+    else:
+        cumulative_comparison_data = cumulative_average(
+            comparison_data, "day_in_season", "temperature"
+        )
+        cumulative_comparison_data["year"] = (
+            f"{climate_normal[1]} - {climate_normal[0]}"
+        )
+
+    plot_data = pd.concat([cumulative_main_year_data, cumulative_comparison_data])
+    settings = {
+        "title": f"Verlauf des kumulativen Tagestemperatur-Mittelwerts im {season_name[season]}"
+    }
+    plot_line_chart(plot_data, main_year, settings)
+    st.write("---")
+
+    settings = {"title": f"Histogramm der Tagestemperaturen"}
+    plot_data = (
+        pd.concat([main_year_data, comparison_data])
+        if compare_type == "Jahr"
+        else main_year_data
+    )
+    plot_histogram(plot_data, settings)

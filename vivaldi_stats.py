@@ -1,11 +1,10 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-import helper
+import const as cn
 
 current_year = datetime.now().year
 pd.set_option("styler.render.max_elements", 660000)
-
 
 
 def highlight_current_year_row(row):
@@ -22,11 +21,12 @@ def highlight_current_year_row(row):
     >>> df = pd.DataFrame({'Jahr': [2020, 2021, 2022]})
     >>> df.apply(highlight_current_year_row, axis=1)
     """
-    if row['Jahr'] == current_year:
-        return ['background-color: yellow'] * len(row)
-    return [''] * len(row)
+    if row["Jahr"] == current_year:
+        return ["background-color: yellow"] * len(row)
+    return [""] * len(row)
 
-def show():
+
+def show(vivaldi):
     """
     Displays statistics and individual data for seasonal temperatures.
 
@@ -42,94 +42,110 @@ def show():
     Returns:
         None
     """
-    df = st.session_state.data
-    season_mapping = {1: 'Winter', 2: 'Frühling', 3: 'Sommer', 4: 'Herbst'}
-    ranking_options = ['Mittl. Temp', 'Min. Temp', 'Max. Temp', 'Hitzetage', 'Frosttage', 'Eistage']
-    column_names_dict = {
-        'Mittl. Temp': 'temperature', 
-        'Min. Temp': 'min_temperature', 
-        'Max. Temp': 'max_temperature', 
-        'Hitzetage': 'hitzetag', 
-        'Eistage': 'eistag', 
-        'Frosttage': 'frosttag'
-    }
-
-    # Add a season filter to the sidebar
-    selected_seasons = st.sidebar.multiselect( 
-        "Selektiere Jahreszeit", options=list(season_mapping.keys()),
-        format_func=lambda x: season_mapping[x],
-        default=helper.get_current_season()
-    )
-    if selected_seasons == []:
-        selected_seasons = df['season'].unique()
-    min_year, max_year = int(df['year'].min()), int(df['year'].max())
-    selected_year_range = st.sidebar.slider(
-        "Select Year Range", min_year, max_year, (min_year, max_year)
-    )
-
-    ranked_parameter = st.sidebar.selectbox("Ranking Parameter", ranking_options)
-    filtered_df = df[
-        (df['season'].isin(selected_seasons)) &
-        (df['season_year'] >= selected_year_range[0]) &
-        (df['season_year'] <= selected_year_range[1]) &
-        (df[column_names_dict[ranked_parameter]].notna())
-    ]
-
+    df = vivaldi.data
+    ranked_parameter_column = vivaldi.get_col_name(vivaldi.ranked_parameter)
+    if vivaldi.time_agg == "Jahreszeit":
+        # filter is applied to ogitinal table with original names, not labels
+        filtered_df = df[
+            (df["season"].isin(vivaldi.filter_seasons))
+            & (df["season_year"] >= vivaldi.filter_years[0])
+            & (df["season_year"] <= vivaldi.filter_years[1])
+            & (df[ranked_parameter_column].notna())
+        ]
+        year_field = "season_year"
+        agg_field = "season"
+        agg_field_de = "Jahreszeit"
+        map_func = cn.season_name
+    elif vivaldi.time_agg == "Monat":
+        filtered_df = df[
+            (df["month"].isin(vivaldi.filter_months))
+            & (df["season_year"] >= vivaldi.filter_years[0])
+            & (df["season_year"] <= vivaldi.filter_years[1])
+            & (df[ranked_parameter_column].notna())
+        ]
+        year_field = "year"
+        agg_field = "month"
+        agg_field_de = "Monat"
+        map_func = vivaldi.month_name
+    else:
+        filtered_df = df
+        year_field = "year"
+        agg_field = "year"
+        agg_field_de = "Jahr"
     # Generate the summary table grouped by year and season
-    summary_table = filtered_df.groupby(['season_year', 'season']).agg({
-        'temperature': ['mean'],
-        'min_temperature': ['min'],
-        'max_temperature': ['max'],
-        'hitzetag': ['sum'],
-        'frosttag': ['sum'],
-        'eistag': ['sum']
-    }).reset_index()
-
-    
-    # Rename columns for better readability
-    summary_table['season'] = summary_table['season'].map(season_mapping)
-    summary_table.columns = ['Jahr', 'Jahreszeit'] + ranking_options
-    summary_table['Rang'] = summary_table[ranked_parameter].rank(ascending=False, method='min')
-    summary_table['Rang'] = summary_table['Rang'].astype(int)
-    summary_table.sort_values(by='Jahr', inplace=True, ascending=False)
-    styled_table = summary_table.style.apply(highlight_current_year_row, axis=1).format({
-        "Mittl. Temp": "{:.1f}",
-        "Min. Temp": "{:.1f}",
-        "Max. Temp": "{:.1f}"
-    })
-
-    st.title("Statistik der Temperaturen nach Jahreszeiten, Station Binningen")
-    st.subheader(f"Jahre {selected_year_range[0]} - {selected_year_range[1]}")
-    st.dataframe(
-        styled_table, 
-        height=800, 
-        width=1000, 
-        hide_index=True,
+    summary_table = (
+        filtered_df.groupby(vivaldi.time_aggregation_parameters)
+        .agg(
+            {
+                ranked_parameter_column: cn.parameters_dict[ranked_parameter_column][
+                    "agg_func"
+                ]
+            }
+        )
+        .reset_index()
     )
-    
+    # Rename columns for better readability
+    if vivaldi.time_agg != "Jahr":
+        summary_table[agg_field] = summary_table[agg_field].map(map_func)
+    parameter_agg_list = [
+        f"{vivaldi.ranked_parameter} ({cn.agg_func_dict[f]})"
+        for f in cn.parameters_dict[ranked_parameter_column]["agg_func"]
+    ]
+    if vivaldi.time_agg != "Jahr":
+        summary_table.columns = ["Jahr", agg_field_de] + parameter_agg_list
+    else:
+        summary_table.columns = ["Jahr"] + parameter_agg_list
+    summary_table["Rang"] = summary_table[parameter_agg_list[0]].rank(
+        ascending=False, method="min"
+    )
+    summary_table["Rang"] = summary_table["Rang"].astype(int)
+    summary_table.sort_values(by="Jahr", inplace=True, ascending=False)
 
-    csv = summary_table.to_csv(index=False)
-    st.download_button(
-        label="Daten Herunterladen",
-        data=csv,
-        file_name='seasonal_temperature_summary.csv',
-        mime='text/csv'
+    formats = {
+        f"{vivaldi.ranked_parameter} ({cn.agg_func_dict[f]})": cn.parameters_dict[
+            ranked_parameter_column
+        ]["frmt"]
+        for f in cn.parameters_dict[ranked_parameter_column]["agg_func"]
+    }
+    styled_table = summary_table.style.apply(highlight_current_year_row, axis=1).format(
+        formats
+    )
+
+    st.title(f"Statistik der Temperaturen nach {agg_field_de}, Station Binningen")
+    st.subheader(f"Jahre {vivaldi.filter_years[0]} - {vivaldi.filter_years[1]}")
+    st.dataframe(
+        styled_table,
+        height=800,
+        width=1000,
+        hide_index=True,
     )
 
     st.title("Einzeldaten")
-    st.subheader(f"Jahre {selected_year_range[0]} - {selected_year_range[1]}")
-    df = st.session_state.data.sort_values(by='date', ascending=False)
-    filtered_df = df[
-        (df['season'].isin(selected_seasons)) &
-        (df['year'] >= selected_year_range[0]) &
-        (df['year'] <= selected_year_range[1])
-    ]
-    filtered_df = filtered_df[['date', 'temperature', 'min_temperature', 'max_temperature', 'day_in_season']]
-    filtered_df.columns = ['Datum', 'Mittl. Temp', 'Min. Temp', 'Max. Temp', 'Tag in Jahreszeit']
-    styled_df = filtered_df.style.format({
-        'Datum': lambda x: x.strftime('%d.%m.%Y'),
-        "Mittl. Temp": "{:.1f}",
-        "Min. Temp": "{:.1f}",
-        "Max. Temp": "{:.1f}"
-    })
+    st.subheader(f"Jahre {vivaldi.filter_years[0]} - {vivaldi.filter_years[1]}")
+    df = vivaldi.data.sort_values(by="date", ascending=False)
+    if vivaldi.time_agg == "Jahreszeit":
+        filtered_df = df[
+            (df["season"].isin(vivaldi.filter_seasons))
+            & (df["year"] >= vivaldi.filter_years[0])
+            & (df["year"] <= vivaldi.filter_years[1])
+        ]
+    elif vivaldi.time_agg == "Monat":
+        filtered_df = df[
+            (df["month"].isin(vivaldi.filter_months))
+            & (df["year"] >= vivaldi.filter_years[0])
+            & (df["year"] <= vivaldi.filter_years[1])
+        ]
+    elif vivaldi.time_agg == "Jahr":
+        filtered_df = df[
+            (df["year"] >= vivaldi.filter_years[0])
+            & (df["year"] <= vivaldi.filter_years[1])
+        ]
+    filtered_df = filtered_df[["date"] + list(cn.parameters_dict.keys())]
+    filtered_df.columns = ["Datum"] + list(
+        v["label"] for v in cn.parameters_dict.values()
+    )
+    formats = {"Datum": lambda x: x.strftime("%d.%m.%Y")}
+    for k, v in cn.parameters_dict.items():
+        formats[v["label"]] = v["frmt"]
+    styled_df = filtered_df.style.format(formats)
     st.dataframe(styled_df, height=800, width=1000, hide_index=True)

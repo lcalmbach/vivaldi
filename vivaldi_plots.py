@@ -1,12 +1,12 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
-from helper import season_id, season_name, get_current_season
+import const as cn
 
-menu = ['Statisitik der Jahreszeiten', 'Vergleich Jahreszeit-Temperatur Mittelwerte']
-DEF_NORM_START, DEF_NORM_END = 1991, 2020        
+menu = ["Statisitik der Jahreszeiten", "Vergleich Jahreszeit-Temperatur Mittelwerte"]
 
-def cumulative_average(df: pd.DataFrame, sort_key:str, value_key:str)->pd.DataFrame:
+
+def cumulative_average(df: pd.DataFrame, sort_key: str, value_key: str) -> pd.DataFrame:
     """
     Calculate the cumulative average of a specified column in a DataFrame.
 
@@ -24,52 +24,6 @@ def cumulative_average(df: pd.DataFrame, sort_key:str, value_key:str)->pd.DataFr
     return result
 
 
-def get_main_data(all_data:pd.DataFrame, main_year:int, season:int)->pd.DataFrame:
-    """
-    Retrieves the main data for a specific year and season from the given dataset.
-
-    Parameters:
-    - all_data (DataFrame): The dataset containing all the data.
-    - main_year (int): The main year to filter the data by.
-    - season (str): The season to filter the data by.
-
-    Returns:helper
-    - main_year_data (DataFrame): The filtered data for the main year and season.
-    """
-    main_year_data = all_data[(all_data['season_year'] == main_year) & (all_data['season'] == season)]
-    main_year_data.loc[:, 'year'] = f'{season_name[season]} {main_year}'
-    return main_year_data
-
-
-def get_comparison_data(all_data:pd.DataFrame, compare_type:str, comparison_years:list, climate_normal:list, season:int):
-    """
-    Retrieves comparison data based on the specified parameters.
-
-    Parameters:
-    - all_data: DataFrame containing all the data
-    - compare_type: Type of comparison ('Jahr' or other)
-    - comparison_years: List of years to compare
-    - climate_normal: Range of years for climate normal
-    - season: Season to consider
-
-    Returns:
-    - comparison_data: DataFrame containing the comparison data
-    """
-
-    if compare_type == 'Jahr':
-        comparison_data = all_data[(all_data['season'] == season) & (all_data['season_year'].isin(comparison_years)) ]
-        comparison_data = comparison_data[['season_year', 'day_in_season', 'temperature']]
-        comparison_data['year'] = comparison_data['season_year'].astype(str)
-        comparison_data['year'] = season_name[season] + ' ' + comparison_data['year']
-    else:
-        normal_data = all_data[(all_data['season_year'] >= climate_normal[0]) & (all_data['season_year'] <= climate_normal[1]) & ( all_data['season'] == season)]
-        normal_data = normal_data.groupby('day_in_season').agg({'temperature':'mean'}).reset_index()
-        normal_data['year'] = f'{season_name[season]} {climate_normal[1]} - {climate_normal[0]}'
-        comparison_data = normal_data
-    
-    return comparison_data.sort_values(by='day_in_season')
-
-
 def plot_line_chart(plot_data, main_year: int, settings: dict):
     """
     Plots a line chart using the provided data.
@@ -82,24 +36,27 @@ def plot_line_chart(plot_data, main_year: int, settings: dict):
     Returns:
     None
     """
-    plot_data['is_main_year'] = plot_data['year'].str.contains(str(main_year))
-    line_chart = alt.Chart(plot_data).mark_line().encode(
-        x='day_in_season:Q',
-        y='temperature:Q',
-        color='year:N',
-        size=alt.condition(
-            alt.datum['is_main_year'],
-            alt.value(3),
-            alt.value(1)
-        ),
-        tooltip=['year', 'day_in_season', 'temperature']
-    ).properties(
-        title=settings['title']
+    plot_data["main_year"] = plot_data["Jahr"] == settings["main_year"]
+    if "y_axis" in settings:
+        y_axis = alt.Y(f"{settings['y']}:Q", scale=alt.Scale(domain=settings["y_axis"]))
+    else:
+        y_axis = alt.Y(f"{settings['y']}:Q")
+    line_chart = (
+        alt.Chart(plot_data)
+        .mark_line()
+        .encode(
+            x=f"{settings['x']}:Q",
+            y=y_axis,
+            color=f"{settings['color']}:N",
+            size=alt.condition(alt.datum["main_year"], alt.value(3), alt.value(1)),
+            tooltip=[settings["x"], settings["y"], settings["color"]],
+        )
+        .properties(title=settings["title"], height=400)
     )
     st.altair_chart(line_chart, use_container_width=True)
 
 
-def plot_histogram(plot_data:pd.DataFrame, settings:dict):
+def plot_histogram(plot_data: pd.DataFrame, settings: dict):
     """
     Plots a histogram using the provided plot_data and settings.
 
@@ -110,59 +67,155 @@ def plot_histogram(plot_data:pd.DataFrame, settings:dict):
     Returns:
     None
     """
-    histogram = alt.Chart(plot_data).mark_bar().encode(
-        alt.X('temperature:Q', bin=True, title='Temperatur [°C]'),
-        alt.Y('count()', title='Count'),
-        alt.Color('season_year:N', legend=alt.Legend(title="Jahr")),
-        alt.Facet('season_year:N', columns=1, title=settings['title'])
-    ).properties(
-
-        width=400,
-        height=300
-    ).configure_facet(
-        spacing=10
-    ).configure_title(
-        anchor='middle'
+    histogram = (
+        alt.Chart(plot_data)
+        .mark_bar()
+        .encode(
+            alt.X(f"{settings['y']}:Q", bin=alt.Bin(maxbins=50)),  # Specify maxbins here
+            alt.Y("count()", title="Anzahl"),
+            alt.Color(f"{settings['color']}:N", legend=alt.Legend(title="Jahr")),
+            alt.Facet(f"{settings['color']}:N", columns=1, title=settings["title"]),
+        )
+        .properties(width=400, height=300)
+        .configure_facet(spacing=10)
+        .configure_title(anchor="middle")
     )
 
     st.altair_chart(histogram, use_container_width=True)
 
 
-def get_filters():
+def add_day_column(vivaldi, df) -> pd.DataFrame:
     """
-    Returns the selected filters for generating Vivaldi plots.
+    Adds a day column to the given DataFrame based on the specified time aggregation.
+
+    Parameters:
+        vivaldi (object): An object containing information about the time aggregation.
+        df (pd.DataFrame): The DataFrame to which the day column will be added.
 
     Returns:
-        tuple: A tuple containing the following elements:
-            - season (str): The selected season.
-            - main_year (int): The selected main year.
-            - compare_type (str): The type of comparison selected.
-            - comparison_years (list): The selected comparison years.
-            - climate_normal (list): The selected climate normal range.
+        pd.DataFrame: The DataFrame with the day column added.
+
+    Raises:
+        None
     """
-    st.sidebar.header("Select Filters")
-    
-    index = get_current_season() -1
-    st.write(index)
-    selected_season = st.sidebar.selectbox( 
-        "Wähle eine Jahreszeit", 
-        options=list(season_name.keys()),
-        format_func=lambda x: season_name[x],
-        index = get_current_season() - 1
-    )
-    main_year = st.sidebar.selectbox("Wähle das Hauptjahr", st.session_state.years )
-    
-    compare_options=["Jahr", "Klimanormale"]
-    compare_type = st.sidebar.radio("Vergleiche ausgewählte Jahreszeit mit", compare_options)
-    comparison_years, climate_normal, normal_start, normal_end = [st.session_state.years[1],st.session_state.years[2],st.session_state.years[3]], [], DEF_NORM_START, DEF_NORM_END
-    if compare_options.index(compare_type) == 0:
-        comparison_years = st.sidebar.multiselect("Vergleichsjahre", st.session_state.years, default=comparison_years)
+    # ranks data by date and season
+    if vivaldi.time_agg == "Jahreszeit":
+        df[vivaldi.day_in_period_column] = (
+            df.groupby(["season", "season_year"]).cumcount() + 1
+        )
+    elif vivaldi.time_agg == "Jahr":
+        df[vivaldi.day_in_period_column] = df.groupby(["year"]).cumcount() + 1
+    elif vivaldi.time_agg == "Monat":
+        df[vivaldi.day_in_period_column] = df.groupby(["year", "month"]).cumcount() + 1
+    return df
+
+
+def get_main_year_data(vivaldi, df_all):
+    """
+    Filter the given DataFrame `df_all` to include only the main year data based on the `vivaldi` object.
+    Perform necessary data transformations and return the resulting DataFrame.
+
+    Parameters:
+    - vivaldi: The Vivaldi object used for filtering and data transformations.
+    - df_all: The DataFrame containing all the data.
+
+    Returns:
+    - df: The filtered and transformed DataFrame containing the main year data.
+    """
+    df = vivaldi.filter_by_main_year(df_all)
+    df, add_day_column(vivaldi, df)
+    df = df.drop(columns=["date"])
+    if "season_year" in df.columns:
+        year_col, year_expression = "season_year", "Jahr"
     else:
-        climate_normal = st.sidebar.select_slider("Klimanormale", sorted(st.session_state.years), value=[normal_start,normal_end])
-    return selected_season, main_year, compare_type, comparison_years, climate_normal
+        year_col, year_expression = "year", "Jahr"
+    col_to_drop = [x for x in df.columns if x in ["month", "season"]]
+    df = df.drop(col_to_drop, axis=1)
+    df.rename(
+        columns={vivaldi.parameter: vivaldi.parameter_label, year_col: year_expression},
+        inplace=True,
+    )
+    return df
 
 
-def show():
+def get_climat_normal_data(vivaldi, df_all):
+    """
+    Retrieves climate normal data from the given DataFrame.
+
+    Args:
+        vivaldi (Vivaldi): An instance of the Vivaldi class.
+        df_all (pandas.DataFrame): The input DataFrame containing all data.
+
+    Returns:
+        pandas.DataFrame: The DataFrame with climate normal data, aggregated by day.
+
+    """
+    df = vivaldi.filter_by_climate_normal(df_all)
+    df = add_day_column(vivaldi, df)
+    df = (
+        df.groupby(vivaldi.day_in_period_column)
+        .agg(
+            {vivaldi.parameter: "mean"}
+        )
+        .reset_index()
+    )
+    df.rename(columns={vivaldi.parameter: vivaldi.parameter_label}, inplace=True)
+    return df
+
+
+def get_compare_to_selected_years_data(vivaldi, df_all):
+    """
+    Retrieves data for comparing the main year with selected years.
+
+    Args:
+        vivaldi (Vivaldi): An instance of the Vivaldi class.
+        df_all (DataFrame): The DataFrame containing the data.
+
+    Returns:
+        tuple: A tuple containing two DataFrames:
+            - plot_data: The modified plot data for comparison.
+            - plot_data_base: The base plot data.
+
+    """
+    plot_data_base = vivaldi.filter_by_multi_year(
+        df_all, [vivaldi.main_year] + vivaldi.multi_years
+    )
+    plot_data_base = add_day_column(vivaldi, plot_data_base)
+
+    if cn.parameters_dict[vivaldi.parameter]["agg_func"][0] == "sum":
+        plot_data = plot_data_base.copy()
+        sort_by_columns = vivaldi.time_aggregation_parameters + [
+            vivaldi.day_in_period_column
+        ]
+        plot_data[vivaldi.parameter] = (
+            plot_data.sort_values(by=sort_by_columns)
+            .groupby(vivaldi.time_aggregation_parameters)[vivaldi.parameter]
+            .cumsum()
+        )
+    else:
+        plot_data = plot_data_base
+    plot_data = vivaldi.rename_plot_columns(plot_data)
+    plot_data["main_year"] = 0
+    return plot_data, plot_data_base
+
+
+def get_compare_climate_normal_data(vivaldi, df_all):
+    df_main = get_main_year_data(vivaldi, df_all)
+    df_climate_normal = get_climat_normal_data(vivaldi, df_all)
+    plot_data_base = pd.concat([df_main.copy(), df_climate_normal.copy()], ignore_index=True)
+    if cn.parameters_dict[vivaldi.parameter]["agg_func"][0] == "sum":
+        df_main[vivaldi.parameter_label] = df_main[vivaldi.parameter_label].cumsum()
+        df_climate_normal[vivaldi.parameter_label] = df_climate_normal[
+            vivaldi.parameter_label
+        ].cumsum()
+    else:
+        plot_data = pd.concat([df_main, df_climate_normal], ignore_index=True)
+
+    plot_data = pd.concat([df_main, df_climate_normal], ignore_index=True)
+    return plot_data, plot_data_base
+
+
+def show(vivaldi):
     """
     Displays graphical representations of temperature data.
 
@@ -178,34 +231,76 @@ def show():
     """
     st.title("Grafische Darstellungen")
 
-    season, main_year, compare_type, comparison_years, climate_normal = get_filters()
-    main_year_data = get_main_data(st.session_state.data , main_year, season)
-    comparison_data = get_comparison_data(st.session_state.data, compare_type, comparison_years, climate_normal, season)
-    plot_data = pd.concat([main_year_data, comparison_data])
-    settings = {'title': f'Verlauf der mittleren Tagestemperatur im {season_name[season]}'}
-    plot_line_chart(plot_data, main_year, settings)
-    st.write('---')
+    df_all = vivaldi.data[
+        vivaldi.time_aggregation_parameters + ["date", vivaldi.parameter]
+    ]
+    if vivaldi.compare_type == 0:  # selected years
+        plot_data, plot_data_base = get_compare_to_selected_years_data(vivaldi, df_all)
+    else:  # climate normal
+        plot_data, plot_data_base = get_compare_climate_normal_data(vivaldi, df_all)
 
-    cumulative_main_year_data = cumulative_average(main_year_data, 'day_in_season', 'temperature')
-    cumulative_main_year_data['year'] = str(main_year)
-    if compare_type == 'Jahr':
+    plot_data["main_year"] = plot_data["Jahr"] == vivaldi.main_year
+    settings = {
+        "title": f"{vivaldi.parameter_label} im {vivaldi.period_name}",
+        "x": vivaldi.day_in_period_column,
+        "y": vivaldi.parameter_label,
+        "color": "Jahr",
+        "main_year": vivaldi.main_year,
+    }
+    if not vivaldi.y_axis_auto:
+        settings["y_axis"] = vivaldi.y_axis
+    plot_line_chart(plot_data, vivaldi.main_year, settings)
+
+    # cumulative average only makes sense for continuous data such as temperature, not for e.g. precipitation
+    if cn.parameters_dict[vivaldi.parameter]["agg_func"][0] == "mean":
+        # lower plots  shows cumulative average
+        st.markdown("---")
         cumulative_comparison_data = pd.DataFrame()
-        for year in comparison_years:
-            df = cumulative_average(comparison_data[comparison_data['season_year'] == year], 'day_in_season', 'temperature')
-            df['year'] = str(year)
-            cumulative_comparison_data = pd.concat([cumulative_comparison_data, df])
-    else:
-        cumulative_comparison_data = cumulative_average(comparison_data, 'day_in_season', 'temperature')
-        cumulative_comparison_data['year'] = f'{climate_normal[1]} - {climate_normal[0]}'
+        if vivaldi.compare_type == 0:
+            cumulative_comparison_data = pd.DataFrame()
+            for year in [vivaldi.main_year] + vivaldi.multi_years:
+                df = cumulative_average(
+                    plot_data[plot_data["Jahr"] == year],
+                    vivaldi.day_in_period_column,
+                    vivaldi.parameter_label,
+                )
+                df["Jahr"] = year
+                cumulative_comparison_data = pd.concat([cumulative_comparison_data, df])
+        else:
+            df_main = get_main_year_data(vivaldi, df_all)
+            df_main = cumulative_average(
+                df_main, vivaldi.day_in_period_column, vivaldi.parameter_label
+            )
+            df_main["Jahr"] = vivaldi.main_year
 
-    plot_data = pd.concat([cumulative_main_year_data, cumulative_comparison_data])
-    settings = {'title': f'Verlauf des kumulativen Tagestemperatur-Mittelwerts im {season_name[season]}'}
-    plot_line_chart(plot_data, main_year, settings)
-    st.write('---')
+            df_climate_normal = get_climat_normal_data(vivaldi, df_all)
+            df_climate_normal = cumulative_average(
+                df_climate_normal, vivaldi.day_in_period_column, vivaldi.parameter_label
+            )
+            df_climate_normal["Jahr"] = cn.climate_normal_name_dict[
+                vivaldi.compare_type
+            ]
+            cumulative_comparison_data = pd.concat([df_main, df_climate_normal])
 
-    settings = {'title': f'Histogramm der Tagestemperaturen'}
-    plot_data = pd.concat([main_year_data, comparison_data]) if compare_type =='Jahr' else main_year_data
+            cumulative_comparison_data["main_year"] = (
+                cumulative_comparison_data["Jahr"] == vivaldi.main_year
+            )
+            plot_data = pd.concat(
+                [df_main, cumulative_comparison_data], ignore_index=True
+            )
+
+        settings["title"] = (
+            f"Kumulatives Mittel von {vivaldi.parameter_label} im {vivaldi.period_name}"
+        )
+        settings["Y_title"] = f"Anzahl"
+        plot_line_chart(cumulative_comparison_data, vivaldi.main_year, settings)
+
+    # Histogram
+    st.markdown("---")
+    if cn.parameters_dict[vivaldi.parameter]["agg_func"][0] == "sum":
+        plot_data = plot_data_base
+        plot_data = vivaldi.rename_plot_columns(plot_data)
+    settings["title"] = (
+        f"Histogramm von {vivaldi.parameter_label} im {vivaldi.period_name}",
+    )
     plot_histogram(plot_data, settings)
-
-
-    

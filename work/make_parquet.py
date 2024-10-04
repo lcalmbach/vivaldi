@@ -1,4 +1,5 @@
 import pandas as pd
+import requests
 
 def add_meteorological_season(df, date_column):
     def get_season(date):
@@ -17,21 +18,23 @@ def add_meteorological_season(df, date_column):
     
     # Apply the get_season function to the date column and add it as a new column
     df['season'] = df[date_column].apply(get_season)
+    df['month'] = df[date_column].dt.month
     
     return df
 
 # Load the CSV file into a pandas DataFrame
 csv_file_path = "./data/100254.csv"
-df = pd.read_csv(csv_file_path, sep=';')
-cols = ['Datum','Jahr','Tagesmittel Lufttemperatur','Tagesminimum Lufttemperatur', 'Tagesmaximum Lufttemperatur']
-df = df[cols]
-df.columns = ['date','year','temperature', 'min_temperature', 'max_temperature']
+parquet_file_path = "./data/100254.parquet"
+url = 'https://data.bs.ch/api/explore/v2.1/catalog/datasets/100254/exports/csv?lang=de&timezone=Europe%2FBerlin&use_labels=false&delimiter=%3B&select=date,jahr,tre200d0,tre200dn,tre200dx,hto000d0,rre150d0'
+
+#read csv from url
+df = pd.read_csv(url, sep=';')
+df.columns = ['date','year','temperature', 'min_temperature', 'max_temperature', 'snowfall', 'precipitation']
 df['date'] = pd.to_datetime(df['date'])
 df = df.sort_values(by='date')
 df['season_year'] = df['date'].apply(lambda x: x.year + 1 if x.month == 12 else x.year)
 df = add_meteorological_season(df, 'date')
 df['day_in_season'] = df.groupby(['season', 'season_year']).cumcount() + 1
 
-parquet_file_path = "./data/100254.parquet"
 df.to_parquet(parquet_file_path)
 df.to_csv("./data/100254_season.csv", index=False)
