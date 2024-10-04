@@ -24,7 +24,7 @@ def cumulative_average(df: pd.DataFrame, sort_key: str, value_key: str) -> pd.Da
     return result
 
 
-def plot_line_chart(plot_data, main_year: int, settings: dict):
+def plot_line_chart(plot_data, settings: dict):
     """
     Plots a line chart using the provided data.
 
@@ -160,6 +160,7 @@ def get_climat_normal_data(vivaldi, df_all):
         .reset_index()
     )
     df.rename(columns={vivaldi.parameter: vivaldi.parameter_label}, inplace=True)
+    df["Jahr"] = cn.climate_normal_name_dict[vivaldi.compare_type]
     return df
 
 
@@ -249,7 +250,7 @@ def show(vivaldi):
     }
     if not vivaldi.y_axis_auto:
         settings["y_axis"] = vivaldi.y_axis
-    plot_line_chart(plot_data, vivaldi.main_year, settings)
+    plot_line_chart(plot_data, settings)
 
     # cumulative average only makes sense for continuous data such as temperature, not for e.g. precipitation
     if cn.parameters_dict[vivaldi.parameter]["agg_func"][0] == "mean":
@@ -293,7 +294,7 @@ def show(vivaldi):
             f"Kumulatives Mittel von {vivaldi.parameter_label} im {vivaldi.period_name}"
         )
         settings["Y_title"] = f"Anzahl"
-        plot_line_chart(cumulative_comparison_data, vivaldi.main_year, settings)
+        plot_line_chart(cumulative_comparison_data, settings)
 
     # Histogram
     st.markdown("---")

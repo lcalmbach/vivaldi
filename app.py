@@ -5,7 +5,7 @@ from vivaldi import Vivaldi
 # https://icons.getbootstrap.com/?q=image
 menu_icons = ["house", "table", "graph-up", "chat-dots"]
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __author__ = "Lukas Calmbach"
 __author_email__ = "lcalmbach@gmail.com"
 VERSION_DATE = "2024-10-03"
