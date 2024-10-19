@@ -1,3 +1,6 @@
 streamlit==1.38.0
 streamlit-option-menu
 openai==1.43.0
+langchain-community
+langchain_openai
+tavily-python

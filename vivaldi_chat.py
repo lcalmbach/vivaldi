@@ -5,6 +5,7 @@ from datetime import datetime
 from const import season_name, parameters_dict, time_agg_options, time_agg_prefix
 from texts import txt
 import json
+from internet_agent import InternetSearchAgent
 
 MODEL = "gpt-4o"
 json_file = "./summaries.json"
@@ -92,11 +93,11 @@ def get_data(vivaldi):
 def show(vivaldi):
     if vivaldi.time_agg == "Jahr":
         st.markdown(
-            f"**Zusammenfasssung für das Jahr {vivaldi.period_value}** (Generiert mit {MODEL})"
+            f"### Zusammenfasssung für das Jahr {vivaldi.period_value} (Generiert mit {MODEL})"
         )
     else:
         st.markdown(
-            f"**Zusammenfasssung für den {vivaldi.period_name} {vivaldi.main_year}** (Generiert mit {MODEL})"
+            f"### Zusammenfasssung für den {vivaldi.period_name} {vivaldi.main_year} (Generiert mit {MODEL})"
         )
     key = f"{vivaldi.time_agg_prefix}-{vivaldi.main_year}-{vivaldi.period_value}"
     # load previous summaries
@@ -122,3 +123,11 @@ def show(vivaldi):
         cols = st.columns(2)
         with cols[0]:
             st.markdown(response)
+    st.divider() 
+    st.markdown("### 📄 Internet Recherche mit kurzem Artikel")
+    st.markdown("Diese Analyse verwendet keine Daten aus dieser Applikation. Sie sucht im Internet nach Informationen und fasst die Ergebnisse anschliessend mit Hilfe von ChatGPT in einem Artikel zusammen.")
+    if st.button("🚀"):
+        internet_search_agent = InternetSearchAgent(vivaldi.time_agg, vivaldi.period_name ,vivaldi.main_year)
+        with st.spinner("🔍 Recherche wird durchgeführt..."):
+            report = internet_search_agent.run()
+            st.markdown(report)
