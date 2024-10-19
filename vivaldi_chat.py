@@ -124,7 +124,7 @@ def show(vivaldi):
         with cols[0]:
             st.markdown(response)
     st.divider() 
-    st.markdown("### 📄 Internet Recherche mit kurzem Artikel")
+    st.markdown("### 🌐 Internet Recherche mit kurzem Artikel")
     st.markdown("Diese Analyse verwendet keine Daten aus dieser Applikation. Sie sucht im Internet nach Informationen und fasst die Ergebnisse anschliessend mit Hilfe von ChatGPT in einem Artikel zusammen.")
     if st.button("🚀"):
         internet_search_agent = InternetSearchAgent(vivaldi.time_agg, vivaldi.period_name ,vivaldi.main_year)
