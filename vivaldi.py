@@ -290,7 +290,7 @@ class Vivaldi:
                     )
             elif self.time_agg == "Monat":
                 if multi_select:
-                    self.main_month = st.multiselect(
+                    self.filter_months = st.multiselect(
                         "Wähle Monate",
                         options=list(cn.month_name.keys()),
                         format_func=lambda x: cn.month_name[x],

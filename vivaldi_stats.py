@@ -66,7 +66,7 @@ def show(vivaldi):
         year_field = "year"
         agg_field = "month"
         agg_field_de = "Monat"
-        map_func = vivaldi.month_name
+        map_func = cn.month_name
     else:
         filtered_df = df
         year_field = "year"
@@ -84,6 +84,7 @@ def show(vivaldi):
         )
         .reset_index()
     )
+
     # Rename columns for better readability
     if vivaldi.time_agg != "Jahr":
         summary_table[agg_field] = summary_table[agg_field].map(map_func)
@@ -129,6 +130,7 @@ def show(vivaldi):
             & (df["year"] >= vivaldi.filter_years[0])
             & (df["year"] <= vivaldi.filter_years[1])
         ]
+        
     elif vivaldi.time_agg == "Monat":
         filtered_df = df[
             (df["month"].isin(vivaldi.filter_months))
@@ -140,6 +142,7 @@ def show(vivaldi):
             (df["year"] >= vivaldi.filter_years[0])
             & (df["year"] <= vivaldi.filter_years[1])
         ]
+    
     filtered_df = filtered_df[["date"] + list(cn.parameters_dict.keys())]
     filtered_df.columns = ["Datum"] + list(
         v["label"] for v in cn.parameters_dict.values()
