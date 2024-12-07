@@ -20,10 +20,9 @@ Mit dieser App erhalten Sie ein leistungsfähiges Werkzeug, um saisonale, monatl
   - [opendata.swiss](https://opendata.swiss/de/dataset/klimamessnetz-tageswerte) hier finden sie alle Stationen des Schweizer Klimamessnetzes.
   - [climate-sci-graph](https://climate-sci-graph.streamlit.app/) Diese App ermöglicht es, alle Klimastationen des Klimanetzwerkes zu analysieren und stellt andere Darstellungsarten zur Verfügung.
 
-*Neu in Version 0.1.0:*
-- Es können neu Grafiken für alle Parameter erstellt werden (Mittlere Temperatur, Mindesttemperatur, Maximaltemperatur, Niederschlag, Frosttage, Eistage, Hitzetage). Bis anhin war dies nur für die mittlere Temperatur möglich.
-- Neu können neben der Jahreszeit auch ausgewählte Monate und Jahre mit den historischen Daten verglichen werden.
-- die KI Zusammenfassung wurde verbessert und ist nun ebenfalls neben der Jahreszeit für Monate und Jahre möglich.
+*Neu in Version 0.2.5:*
+- Das Nachladen von Niederschlag und Schneemenge fwurde geflickt.
+- Globaleinstrahlung wurde als Parameter hinzugefügt.
 """,
     "period_expression": {
         "Monat": "den Monat {}",
