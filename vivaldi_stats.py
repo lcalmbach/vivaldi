@@ -151,4 +151,4 @@ def show(vivaldi):
     for k, v in cn.parameters_dict.items():
         formats[v["label"]] = v["frmt"]
     styled_df = filtered_df.style.format(formats)
-    st.dataframe(styled_df, height=800, width=1000, hide_index=True)
+    st.dataframe(filtered_df, height=800, width=1000, hide_index=True)

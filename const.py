@@ -99,8 +99,8 @@ parameters_dict = {
         "exclude_months": [4, 5, 6, 7, 8, 9, 10],
         "sort_key": 6,
     },
-    "snowfall": {
-        "label": "Schneefall",
+    "schneemenge": {
+        "label": "Schneemenge",
         "description": "Schneefallmenge in mm (Niederschlag-Äquivalent)",
         "unit": "mm",
         "agg_func": ["sum"],
@@ -108,7 +108,7 @@ parameters_dict = {
         "exclude_months": [5, 6, 7, 8, 9],
         "sort_key": 8,
     },
-    "precipitation": {
+    "niederschlag": {
         "label": "Miederschlag",
         "description": "Niederschlag in mm",
         "unit": "mm",
@@ -116,6 +116,15 @@ parameters_dict = {
         "frmt": "{:.1f}",
         "exclude_months": [],
         "sort_key": 7,
+    },
+    "globalstrahlung": {
+        "label": "Globalstrahlung",
+        "description": "Globalstrahlung in W/m2",
+        "unit": "W/m2",
+        "agg_func": ["mean"],
+        "frmt": "{:.1f}",
+        "exclude_months": [],
+        "sort_key": 8,
     },
 }
 

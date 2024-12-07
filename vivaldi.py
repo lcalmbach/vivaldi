@@ -5,11 +5,13 @@ import pandas as pd
 from datetime import datetime, timedelta
 import streamlit as st
 import const as cn
+import os
 
 import vivaldi_stats, vivaldi_chat, vivaldi_plots
 from texts import txt
 
 source_url = "https://data.bs.ch/api/records/1.0/search/?dataset=100254&q=date%20%3E%20%22{}%22&rows=100&sort=date"
+url_all_data = "https://data.bs.ch/api/explore/v2.1/catalog/datasets/100254/exports/csv?lang=de&timezone=Europe%2FBerlin&use_labels=false&delimiter=%3B"
 parquet_file_path = "data/100254.parquet"
 
 
@@ -172,6 +174,83 @@ class Vivaldi:
         )
         return df
 
+    def create_parquet_file(self):
+        """
+        Creates a parquet file with the data from the API.
+
+        Args:
+            None
+
+        Returns:
+            None
+
+        Raises:
+            None
+        """
+        df = pd.read_csv(url_all_data, sep=";")
+        formatted_df = self.format_raw_data(df)
+        formatted_df.to_parquet(parquet_file_path)
+        return formatted_df
+        
+    def format_raw_data(self, raw_df: pd.DataFrame) -> pd.DataFrame:
+        def add_meteorological_season(
+            df: pd.DataFrame, date_column: str
+        ) -> pd.DataFrame:
+            # Ensure the date column is in datetime format
+            df[date_column] = pd.to_datetime(df[date_column])
+
+            # Apply the get_season function to the date column and add it as a new column
+            df["season"] = df[date_column].apply(self.get_season)
+
+            return df
+        
+        fields = [
+            "date",
+            "jahr",
+            "tre200d0",
+            "tre200dn",
+            "tre200dx",
+            "rre150d0",
+            "hto000d0",
+            "gre000d0",
+        ]
+        formatted_df = raw_df[fields]
+        formatted_df.columns = [
+            "date",
+            "year",
+            "temperature",
+            "min_temperature",
+            "max_temperature",
+            "niederschlag",
+            "schneemenge",
+            "globalstrahlung"
+        ]
+        formatted_df["date"] = pd.to_datetime(formatted_df["date"])
+        formatted_df = formatted_df.astype(
+            {
+                "year": "int32",
+                "temperature": "float64",
+                "min_temperature": "float64",
+                "max_temperature": "float64",
+                "niederschlag": "float64",
+                "schneemenge": "float64",
+                "globalstrahlung": "float64",
+            }
+        )
+        formatted_df = formatted_df.sort_values(by="date")
+
+        formatted_df["season_year"] = formatted_df["date"].apply(
+            lambda x: x.year + 1 if x.month == 12 else x.year
+        )
+        formatted_df = add_meteorological_season(formatted_df, "date")
+        formatted_df["day_in_season"] = (
+            formatted_df.groupby(["season", "season_year"]).cumcount() + 1
+        )
+        formatted_df["hitzetag"] = np.where(formatted_df["max_temperature"] > 30, 1, 0)
+        formatted_df["frosttag"] = np.where(formatted_df["min_temperature"] < 0, 1, 0)
+        formatted_df["eistag"] = np.where(formatted_df["max_temperature"] < 0, 1, 0)
+        return formatted_df.sort_values(by="date")
+
     def get_data(self):
         """
         Retrieves data from a parquet file and updates it with new records from an API.
@@ -188,73 +267,33 @@ class Vivaldi:
             None
         """
 
-        def add_meteorological_season(
-            df: pd.DataFrame, date_column: str
-        ) -> pd.DataFrame:
-            # Ensure the date column is in datetime format
-            df[date_column] = pd.to_datetime(df[date_column])
+        
+        # if parquet file exists, read it
+        
+        if not os.path.exists(parquet_file_path):
+            parquet_df = self.create_parquet_file()
+        else:
+            parquet_df = pd.read_parquet(parquet_file_path)
+            last_date = parquet_df["date"].max().date()
+            two_days_ago = datetime.now().date() - timedelta(days=2)
 
-            # Apply the get_season function to the date column and add it as a new column
-            df["season"] = df[date_column].apply(self.get_season)
+            # Check if last_date is more than 2 days before the current date
+            if last_date < two_days_ago:
+                last_date_str = last_date.strftime("%Y-%m-%d")
 
-            return df
+                response = requests.get(source_url.format(last_date_str))
 
-        parquet_df = pd.read_parquet(parquet_file_path)
-        last_date = parquet_df["date"].max().date()
-        two_days_ago = datetime.now().date() - timedelta(days=2)
-
-        # Check if last_date is more than 2 days before the current date
-        if last_date < two_days_ago:
-            last_date_str = last_date.strftime("%Y-%m-%d")
-
-            response = requests.get(source_url.format(last_date_str))
-
-            # Check if the request was successful
-            if response.status_code == 200:
-                # Extract the JSON data from the response
-                data = response.json()
-                new_df = pd.json_normalize(data["records"])
-                if len(new_df) > 0:
-                    fields = [
-                        "fields.date",
-                        "fields.jahr",
-                        "fields.tre200d0",
-                        "fields.tre200dn",
-                        "fields.tre200dx",
-                    ]
-                    new_df = new_df[fields]
-                    new_df.columns = [
-                        "date",
-                        "year",
-                        "temperature",
-                        "min_temperature",
-                        "max_temperature",
-                    ]
-                    new_df["date"] = pd.to_datetime(new_df["date"])
-                    new_df = new_df.astype(
-                        {
-                            "year": "int32",
-                            "temperature": "float64",
-                            "min_temperature": "float64",
-                            "max_temperature": "float64",
-                        }
-                    )
-                    new_df = new_df.sort_values(by="date")
-                    parquet_df = pd.concat([parquet_df, new_df])
-                    parquet_df = parquet_df.sort_values(by="date")
-                    parquet_df.reset_index(drop=True, inplace=True)
-                    parquet_df["season_year"] = parquet_df["date"].apply(
-                        lambda x: x.year + 1 if x.month == 12 else x.year
-                    )
-                    parquet_df = add_meteorological_season(parquet_df, "date")
-                    parquet_df["day_in_season"] = (
-                        parquet_df.groupby(["season", "season_year"]).cumcount() + 1
-                    )
-                    parquet_df.to_parquet(parquet_file_path)
-        parquet_df["hitzetag"] = np.where(parquet_df["max_temperature"] > 30, 1, 0)
-        parquet_df["frosttag"] = np.where(parquet_df["min_temperature"] < 0, 1, 0)
-        parquet_df["eistag"] = np.where(parquet_df["max_temperature"] < 0, 1, 0)
-
+                # Check if the request was successful
+                if response.status_code == 200:
+                    # Extract the JSON data from the response
+                    data = response.json()
+                    new_records_df = pd.json_normalize(data["records"])
+                    if len(new_records_df) > 0:
+                        new_records_df = self.format_raw_data(new_records_df)
+                        parquet_df = pd.concat([parquet_df, new_records_df])
+                        parquet_df.reset_index(drop=True, inplace=True)
+                        
+            parquet_df.to_parquet(parquet_file_path)
         return parquet_df
 
     def get_settings(self, keys: list, multi_select: bool = False):
