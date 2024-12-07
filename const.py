@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class Season(Enum):
+class SeasonEnum(Enum):
     WINTER = 1
     SPRING = 2
     SUMMER = 3

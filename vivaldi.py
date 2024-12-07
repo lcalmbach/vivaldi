@@ -80,40 +80,40 @@ class Vivaldi:
 
     def get_default_season(self):
         """
-        Get the current cn.Season based on the current date and time.
+        Get the current cn.SeasonEnum based on the current date and time.
 
         Returns:
-            str: The current cn.Season.
+            str: The current cn.SeasonEnum.
 
         """
         today = datetime.now()
         season = self.get_season(today)
-        if season > cn.Season.WINTER.value:
+        if season > cn.SeasonEnum.WINTER.value:
             return season - 1
         else:
-            return season.AUTUMN.value
-        return
+            return cn.SeasonEnum.AUTUMN.value
+
 
     def get_season(self, date: datetime) -> int:
         """
-        Returns the cn.Season based on the given date.
+        Returns the cn.SeasonEnum based on the given date.
 
         Args:
-            date (datetime.date): The date for which the cn.Season needs to be determined.
+            date (datetime.date): The date for which the cn.SeasonEnum needs to be determined.
 
         Returns:
-            int: The cn.Season number. 1 for winter, 2 for spring, 3 for summer, and 4 for autumn.
+            int: The cn.SeasonEnum number. 1 for winter, 2 for spring, 3 for summer, and 4 for autumn.
 
         """
         month = date.month
         if month in [12, 1, 2]:
-            return cn.Season.WINTER.value
+            return cn.SeasonEnum.WINTER.value
         elif month in [3, 4, 5]:
-            return cn.Season.SPRING.value
+            return cn.SeasonEnum.SPRING.value
         elif month in [6, 7, 8]:
-            return cn.Season.SUMMER.value
+            return cn.SeasonEnum.SUMMER.value
         elif month in [9, 10, 11]:
-            return cn.Season.AUTUMN.value
+            return cn.SeasonEnum.AUTUMN.value
 
     def get_var(self, varname: str) -> str:
         """
