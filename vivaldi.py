@@ -204,7 +204,7 @@ class Vivaldi:
 
             return df
         
-        fields = [
+        base_fields = [
             "date",
             "jahr",
             "tre200d0",
@@ -213,6 +213,11 @@ class Vivaldi:
             "rre150d0",
             "hto000d0",
             "gre000d0",
+        ]
+
+        fields = [
+            f"fields.{field}" if "tre200d0" not in raw_df.columns else field
+            for field in base_fields
         ]
         formatted_df = raw_df[fields]
         formatted_df.columns = [
