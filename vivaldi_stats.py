@@ -57,7 +57,6 @@ def show(vivaldi):
         agg_field_de = "Jahreszeit"
         map_func = cn.season_name
     elif vivaldi.time_agg == "Monat":
-        st.write(df.columns)
         filtered_df = df[
             (df["month"].isin(vivaldi.filter_months))
             & (df["season_year"] >= vivaldi.filter_years[0])
