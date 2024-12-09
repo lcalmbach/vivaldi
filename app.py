@@ -5,10 +5,10 @@ from vivaldi import Vivaldi
 # https://icons.getbootstrap.com/?q=image
 menu_icons = ["house", "table", "graph-up", "chat-dots"]
 
-__version__ = "0.2.5"
+__version__ = "0.2.6"
 __author__ = "Lukas Calmbach"
 __author_email__ = "lcalmbach@gmail.com"
-VERSION_DATE = "2024-12-07"
+VERSION_DATE = "2024-12-09"
 APP_NAME = "Vivaldi"
 GIT_REPO = "https://github.com/lcalmbach/vivaldi"
 SOURCE_URL = "https://data.bs.ch/explore/dataset/100254/"

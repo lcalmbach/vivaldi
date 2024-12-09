@@ -247,10 +247,12 @@ class Vivaldi:
         formatted_df["season_year"] = formatted_df["date"].apply(
             lambda x: x.year + 1 if x.month == 12 else x.year
         )
+
         formatted_df = add_meteorological_season(formatted_df, "date")
         formatted_df["day_in_season"] = (
             formatted_df.groupby(["season", "season_year"]).cumcount() + 1
         )
+        formatted_df['month'] = formatted_df['date'].dt.month
         formatted_df["hitzetag"] = np.where(formatted_df["max_temperature"] > 30, 1, 0)
         formatted_df["frosttag"] = np.where(formatted_df["min_temperature"] < 0, 1, 0)
         formatted_df["eistag"] = np.where(formatted_df["max_temperature"] < 0, 1, 0)
